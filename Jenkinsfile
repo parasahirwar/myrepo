@@ -1,31 +1,33 @@
 pipeline {
-  agent any
-  stages {
-    stage('Unit Test') {
-      steps {
-        sh 'mvn clean test'
-      }
+    agent any
+    tools {
+        maven 'M2_HOME'
     }
-    stage('Deploy Standalone') {
-      steps {
-        sh 'mvn deploy -P standalone'
-      }
-    }
-    stage('Deploy ARM') {
-      environment {
-        ANYPOINT_CREDENTIALS = credentials('anypoint.credentials')
-      }
-      steps {
-        sh 'mvn deploy -P arm -Darm.target.name=local-3.9.0-ee -Danypoint.username=${ANYPOINT_CREDENTIALS_USR} -Danypoint.password=${ANYPOINT_CREDENTIALS_PSW}'
-      }
-    }
-    stage('Deploy CloudHub') {
-      environment {
-        ANYPOINT_CREDENTIALS = credentials('anypoint.credentials')
-      }
-      steps {
-        sh 'mvn deploy -P cloudhub -Dmule.version=3.9.0 -Danypoint.username=${ANYPOINT_CREDENTIALS_USR} -Danypoint.password=${ANYPOINT_CREDENTIALS_PSW}'
-      }
-    }
-  }
-}
+    stages {
+        stage('Git Checkout') {
+            steps {
+                checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[url: 'git \'https://github.com/parasahirwar/my-repo.git\'']]])kout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'Git', url: 'https://github.tycoelectronics.net/HappiestMindControlTower/backendService.git']]])
+            }
+        }
+        stage('Maven Build') {
+            steps {
+                sh """
+                    echo "Build Stage testing"
+                    pwd && ls
+                    echo "PATH = ${PATH}"
+                    echo "M2_HOME = ${M2_HOME}"
+                    cd te-dashboard-service && sh "${mvnHome}/bin/mvn clean package"
+                    ls
+                  """
+            }
+        }
+        stage('Archive') {
+            steps {
+               archiveArtifacts artifacts: 'webapp/target/*.war, server/target/*.jar',
+               fingerprint: true,
+               onlyIfSuccessful: true
+            }
+           
+        }
+	}
+}	
